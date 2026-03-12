@@ -1,0 +1,20 @@
+{
+  "name": "doc-gen-service",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "docx": "^9.6.1",
+    "docxtemplater": "^3.68.3",
+    "express": "^5.2.1",
+    "pizzip": "^3.2.0"
+  }
+}
