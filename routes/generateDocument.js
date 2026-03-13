@@ -51,11 +51,12 @@ router.post('/', async (req, res) => {
         // so a frontend can render the document directly in the browser.
         const base64 = generatedDoc.toString('base64');
 
-        // Viewer script uses docx-preview (CDN) to render into a container div.
+        // Viewer script uses docx-preview (CDN) to render into a container div
+        // and also provides a download button for the generated Word file.
         const viewerScript = `// This script is intended to be used in a browser environment.
 // Example usage:
-// 1) Add a <div id="docx-viewer"></div> to your HTML.
-// 2) Insert this script after the div.
+// 1) Add <div id="docx-viewer"></div> and <button id="docx-download">Download</button> to your HTML.
+// 2) Insert this script after the div/button.
 // 3) Ensure you load docx-preview from a CDN (shown below).
 
 // Load docx-preview (unpkg CDN) if not already loaded.
@@ -65,24 +66,48 @@ if (typeof docx === 'undefined') {
   document.head.appendChild(s);
 }
 
-// Convert the base64 string into an ArrayBuffer and render.
-(function renderDocx(base64) {
-  const binaryString = atob(base64);
-  const len = binaryString.length;
+function base64ToUint8Array(base64) {
+  const binary = atob(base64);
+  const len = binary.length;
   const bytes = new Uint8Array(len);
   for (let i = 0; i < len; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
+    bytes[i] = binary.charCodeAt(i);
   }
+  return bytes;
+}
 
+function downloadDocx(base64, fileName) {
+  const bytes = base64ToUint8Array(base64);
+  const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName || 'generated.docx';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+(function renderDocx(base64, fileName) {
   const target = document.getElementById('docx-viewer');
+  const downloadBtn = document.getElementById('docx-download');
+
   if (!target) {
     console.warn('No element with id "docx-viewer" found. Add <div id="docx-viewer"></div> to your page.');
-    return;
   }
 
-  // Wait for docx-preview to be ready
+  if (!downloadBtn) {
+    console.warn('No element with id "docx-download" found. Add <button id="docx-download">Download</button> to your page.');
+  }
+
+  if (downloadBtn) {
+    downloadBtn.addEventListener('click', () => downloadDocx(base64, fileName));
+  }
+
   const tryRender = () => {
-    if (typeof docx !== 'undefined' && docx.renderAsync) {
+    if (typeof docx !== 'undefined' && docx.renderAsync && target) {
+      const bytes = base64ToUint8Array(base64);
       docx.renderAsync(bytes.buffer, target).catch(console.error);
     } else {
       setTimeout(tryRender, 50);
@@ -90,8 +115,7 @@ if (typeof docx === 'undefined') {
   };
 
   tryRender();
-})("${base64}");`;
-
+})("${base64}", "${fileName}");`;
         return res.json({
           fileName,
           contentType,
