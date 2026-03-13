@@ -100,20 +100,11 @@ if (typeof docx === 'undefined') {
         });
     }
 
-        const base64String = generatedDoc.toString('base64');
-        return res.json({
-            fileName: fileName,
-            contentType: contentType,
-            base64: base64String
-        });
-    } else {
-        // Set headers to trigger a direct file download stream
-        res.setHeader('Content-Type', contentType);
-        res.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
+    // Default response: send the generated file buffer as a download
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
 
-        // Send the generated file buffer
-        return res.send(generatedDoc);
-    }
+    return res.send(generatedDoc);
   } catch (error) {
     console.error('Error generating document:', error);
     res.status(500).json({ error: 'Failed to generate document', details: error.message });
