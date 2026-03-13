@@ -6,15 +6,20 @@ const path = require('path');
 router.post('/', async (req, res) => {
   try {
     let data = req.body;
-    let type = req.query.type || 'docx'; // Defaults to word document if not specified
+    let type = req.query.type; // If not provided, will be inferred
     const responseFormat = req.query.responseFormat || 'buffer'; // buffer or base64
 
     // Support array-wrapped payloads like: [{ phases: [...] }]
     if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'object') {
       data = data[0];
-      // If it looks like phase-based data, treat it as Excel by default
-      if (!req.query.type && data.phases) {
+    }
+
+    // If type isn't explicitly provided, infer from payload structure
+    if (!type) {
+      if (data && typeof data === 'object' && (data.phases || data.phase)) {
         type = 'excel';
+      } else {
+        type = 'docx';
       }
     }
 
