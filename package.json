@@ -15,6 +15,8 @@
     "docx": "^9.6.1",
     "docxtemplater": "^3.68.3",
     "express": "^5.2.1",
-    "pizzip": "^3.2.0"
+    "pizzip": "^3.2.0",
+    "pptxgenjs": "^4.0.1",
+    "python-shell": "^5.0.0"
   }
 }
