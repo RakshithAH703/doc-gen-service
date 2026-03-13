@@ -47,7 +47,59 @@ router.post('/', async (req, res) => {
 
     // Determine return strategy based on 'responseFormat' query param
     if (responseFormat === 'base64') {
-        // Return JSON containing the raw base64 string
+        // Return JSON containing the raw base64 string and an optional viewer helper script
+        // so a frontend can render the document directly in the browser.
+        const base64 = generatedDoc.toString('base64');
+
+        // Viewer script uses docx-preview (CDN) to render into a container div.
+        const viewerScript = `// This script is intended to be used in a browser environment.
+// Example usage:
+// 1) Add a <div id="docx-viewer"></div> to your HTML.
+// 2) Insert this script after the div.
+// 3) Ensure you load docx-preview from a CDN (shown below).
+
+// Load docx-preview (unpkg CDN) if not already loaded.
+if (typeof docx === 'undefined') {
+  const s = document.createElement('script');
+  s.src = 'https://unpkg.com/docx-preview@3.2.0/dist/docx-preview.min.js';
+  document.head.appendChild(s);
+}
+
+// Convert the base64 string into an ArrayBuffer and render.
+(function renderDocx(base64) {
+  const binaryString = atob(base64);
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+
+  const target = document.getElementById('docx-viewer');
+  if (!target) {
+    console.warn('No element with id "docx-viewer" found. Add <div id="docx-viewer"></div> to your page.');
+    return;
+  }
+
+  // Wait for docx-preview to be ready
+  const tryRender = () => {
+    if (typeof docx !== 'undefined' && docx.renderAsync) {
+      docx.renderAsync(bytes.buffer, target).catch(console.error);
+    } else {
+      setTimeout(tryRender, 50);
+    }
+  };
+
+  tryRender();
+})("${base64}");`;
+
+        return res.json({
+          fileName,
+          contentType,
+          base64,
+          viewerScript,
+        });
+    }
+
         const base64String = generatedDoc.toString('base64');
         return res.json({
             fileName: fileName,
