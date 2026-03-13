@@ -31,13 +31,19 @@ function parseJsonToDocxElements(data, level = 0) {
   const elements = [];
 
   if (typeof data === 'string') {
-    // Simple string becomes a paragraph
-    elements.push(
-      new Paragraph({
-        children: [new TextRun({ text: data, size: 24 })],
-        spacing: { after: 200 },
-      })
-    );
+    // Check if the string is valid JSON, if so, parse it recursively
+    try {
+      const parsed = JSON.parse(data);
+      elements.push(...parseJsonToDocxElements(parsed, level));
+    } catch (e) {
+      // Not JSON, treat as regular string
+      elements.push(
+        new Paragraph({
+          children: [new TextRun({ text: data, size: 24 })],
+          spacing: { after: 200 },
+        })
+      );
+    }
   } else if (Array.isArray(data)) {
     // Arrays become bullet lists
     data.forEach(item => {
