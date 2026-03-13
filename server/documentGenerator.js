@@ -1,6 +1,87 @@
 const fs = require('fs');
 const PizZip = require('pizzip');
 const Docxtemplater = require('docxtemplater');
+const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = require('docx');
+
+/**
+ * Generates a Word document dynamically from JSON data without a template.
+ * Creates a professional document with headings, paragraphs, and bullet points.
+ * @param {object} data - The JSON data to convert into a document.
+ * @returns {Buffer} - The binary buffer of the generated .docx file.
+ */
+async function generateDocumentFromJson(data) {
+  const doc = new Document({
+    sections: [{
+      properties: {},
+      children: parseJsonToDocxElements(data),
+    }],
+  });
+
+  const buffer = await Packer.toBuffer(doc);
+  return buffer;
+}
+
+/**
+ * Recursively parses JSON data and converts it to DOCX elements.
+ * @param {any} data - The JSON data to parse.
+ * @param {number} level - The current nesting level for headings.
+ * @returns {Array} - Array of DOCX elements.
+ */
+function parseJsonToDocxElements(data, level = 0) {
+  const elements = [];
+
+  if (typeof data === 'string') {
+    // Simple string becomes a paragraph
+    elements.push(
+      new Paragraph({
+        children: [new TextRun({ text: data, size: 24 })],
+        spacing: { after: 200 },
+      })
+    );
+  } else if (Array.isArray(data)) {
+    // Arrays become bullet lists
+    data.forEach(item => {
+      if (typeof item === 'string') {
+        elements.push(
+          new Paragraph({
+            children: [new TextRun({ text: `• ${item}`, size: 24 })],
+            indent: { left: 720 }, // Indent for bullets
+            spacing: { after: 120 },
+          })
+        );
+      } else {
+        // Nested objects in arrays
+        elements.push(...parseJsonToDocxElements(item, level + 1));
+      }
+    });
+  } else if (typeof data === 'object' && data !== null) {
+    // Objects: keys become headings, values become content
+    Object.entries(data).forEach(([key, value]) => {
+      // Add heading for the key
+      const headingLevel = Math.min(level + 1, 6); // Max heading level 6
+      elements.push(
+        new Paragraph({
+          children: [new TextRun({ text: key.replace(/_/g, ' ').toUpperCase(), bold: true, size: 28 - (headingLevel * 2) })],
+          heading: HeadingLevel[`HEADING_${headingLevel}`],
+          spacing: { after: 200, before: 400 },
+        })
+      );
+
+      // Add content for the value
+      elements.push(...parseJsonToDocxElements(value, level + 1));
+    });
+  } else {
+    // Other types (numbers, booleans) convert to string
+    elements.push(
+      new Paragraph({
+        children: [new TextRun({ text: String(data), size: 24 })],
+        spacing: { after: 200 },
+      })
+    );
+  }
+
+  return elements;
+}
 
 /**
  * Generates a Word or PowerPoint document from a template using the provided JSON data.
@@ -9,6 +90,11 @@ const Docxtemplater = require('docxtemplater');
  * @returns {Buffer} - The binary buffer of the generated file.
  */
 async function generateDocument(templatePath, data) {
+  // Check if template exists, if not, generate dynamically
+  if (!fs.existsSync(templatePath)) {
+    return generateDocumentFromJson(data);
+  }
+
   // Load the template file as a binary stream
   const content = fs.readFileSync(templatePath, 'binary');
 
