@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { generateDocument, generatePresentation } = require('../server/documentGenerator');
+const { generateDocument, generatePresentation, generateExcelFromJson } = require('../server/documentGenerator');
 const path = require('path');
 
 router.post('/', async (req, res) => {

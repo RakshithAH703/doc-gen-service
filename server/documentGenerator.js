@@ -253,5 +253,6 @@ async function generatePresentation(masterTemplatePath, data) {
 
 module.exports = {
   generateDocument,
-  generatePresentation
+  generatePresentation,
+  generateExcelFromJson,
 };
