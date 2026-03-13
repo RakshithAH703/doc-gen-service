@@ -1,6 +1,7 @@
 const fs = require('fs');
 const PizZip = require('pizzip');
 const Docxtemplater = require('docxtemplater');
+const ExcelJS = require('exceljs');
 const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = require('docx');
 
 /**
@@ -19,6 +20,48 @@ async function generateDocumentFromJson(data) {
 
   const buffer = await Packer.toBuffer(doc);
   return buffer;
+}
+
+/**
+ * Generates an Excel workbook from JSON data.
+ * Expected JSON shape:
+ * {
+ *   phases: [
+ *     { phase: string, items: [ { responsibility, vendor, client, consultant } ] }
+ *   ]
+ * }
+ */
+async function generateExcelFromJson(data) {
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet('Sheet 1');
+
+  // Define headers
+  sheet.addRow(['Phase', 'Responsibility', 'Vendor', 'Client', 'Consultant']);
+
+  if (data && Array.isArray(data.phases)) {
+    data.phases.forEach(phase => {
+      const phaseName = phase.phase || '';
+      const items = Array.isArray(phase.items) ? phase.items : [];
+      items.forEach(item => {
+        sheet.addRow([
+          phaseName,
+          item.responsibility || '',
+          item.vendor || '',
+          item.client || '',
+          item.consultant || '',
+        ]);
+      });
+    });
+  }
+
+  // Style header
+  const headerRow = sheet.getRow(1);
+  headerRow.font = { bold: true };
+  sheet.columns.forEach(column => {
+    column.width = 25;
+  });
+
+  return workbook.xlsx.writeBuffer();
 }
 
 /**

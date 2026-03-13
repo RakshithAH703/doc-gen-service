@@ -26,6 +26,10 @@ router.post('/', async (req, res) => {
       fileName = 'kickoff-presentation.pptx';
       // Use the programmatic builder instead of the text-replacement engine
       generatedDoc = await generatePresentation(templatePath, data);
+    } else if (type === 'excel' || type === 'xlsx') {
+      contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      fileName = 'generated-data.xlsx';
+      generatedDoc = await generateExcelFromJson(data);
     } else {
       if (type === 'pptx_full') {
         templatePath = path.join(__dirname, '../templates/n8n-full-template.pptx');
